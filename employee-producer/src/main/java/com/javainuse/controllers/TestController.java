@@ -1,11 +1,14 @@
 package com.javainuse.controllers;
 
-import java.sql.Connection; 
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+
 import org.json.JSONObject;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +21,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import com.javainuse.controllers.ResponseUpgrade;
 
-
 @Controller
 @RestController
 public class TestController {
 
 	@RequestMapping(value = "/Bank", method = RequestMethod.GET, produces = "application/json")
-	public @ResponseBody String clientDetails(@RequestParam("id") String id) {
+	public @ResponseBody ResponseEntity<ArrayList> clientDetails(@RequestParam("id") String id) {
+		ArrayList<String> al=new ArrayList<String>();
 		JSONObject json_response = null;
 		if (id != null) {
 			try {
@@ -33,34 +36,36 @@ public class TestController {
 
 				// Create Statement
 				Statement st = connection.createStatement();
-
+				
 				// ResultSet
-				ResultSet rs = st.executeQuery("SELECT * FROM client\n" + "INNER JOIN demat ON client.DematID=demat.DematID\n" + "WHERE client.ClientID='" + id+"'");
+				ResultSet rs = st.executeQuery(
+						"SELECT * FROM client Inner join balance ON client.ClientID = balance.ClientID where client.ClientID='"+id+"'");
 				while (rs.next()) {
 					json_response = new JSONObject();
-					json_response.put("Clientid", rs.getString(1));
-					// json_response.put("ClientName", rs.getString(2));
-					json_response.put("Balance", rs.getInt(3));
-					json_response.put("DematID", rs.getInt(4));
-					json_response.put("ShareName", rs.getString(6));
-					json_response.put("ShareQty", rs.getInt(7));
+					json_response.put("ClientId", rs.getString(1));
+					//json_response.put("ClientName", rs.getString(2));
+					json_response.put("ShareName", rs.getString(2));
+					json_response.put("ShareQty", rs.getInt(3));
+					// json_response.put("ClientID", rs.getInt(4));
+					json_response.put("Balance", rs.getInt(5));
 					System.out.println("The JSON object is " + json_response);
-
+					al.add(json_response.toString());
 				}
-
 			}
-
 			catch (Exception e) {
 				e.printStackTrace();
 			}
+			
 		}
-		return json_response.toString();
+		//return al;
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.set("Access-Control-Allow-Origin","*");
+		return new ResponseEntity<ArrayList>(al, responseHeaders, HttpStatus.CREATED);
 	}
-
 	@RequestMapping(value = "/Bank", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
 	public ResponseEntity<ResponseUpgrade> update(@RequestBody ResponseUpgrade response) {
 		// ResponseUpgrade response= null;
-		if (response != null) {	
+		if (response != null) {
 			Connection connection;
 			try {
 				connection = DriverManager.getConnection("jdbc:mysql://localhost:3302/bankdb", "root", "");
@@ -68,55 +73,78 @@ public class TestController {
 				// getting the seller shares
 				// Create Statement
 
-				// ClientID, ClientName, Balance, DematID, DematID ,ShareName, ShareQty,
-				
-				// Buyer Updation
-				String q = "SELECT * FROM client INNER JOIN demat ON client.DematID=demat.DematID WHERE ClientID='" + response.getBuyer()+"'";
-				int og_bal = 0;
-				int og_numb_shares = 0;
-				int demat_id_buyer=0;
+				// ClientID,ShareName, ShareQty,ClientID, Balance
+				// Buyer, Seller, share_name, amt_shares, share_price
+		
+				//Buyer Shares Updation
+				String q = "SELECT * FROM client WHERE client.ClientID='" + response.getBuyer() + "' AND client.ShareName='"+response.getCompany_Name()+"'";
 				Statement st1 = connection.createStatement();
 				ResultSet rs1 = st1.executeQuery(q);
+				int final_numb_shares=0;
+				int og_numb_shares = 0;
+				if(rs1.wasNull())
+				{
+					String r = "INSERT INTO client VALUES ('"+response.getBuyer()+"','"+response.getCompany_Name()+"',"+response.getNumber_of_shares()+");";
+					Statement st2 = connection.createStatement();
+					st2.executeUpdate(r);
+				}
+				else {
 				while (rs1.next()) {
-					og_bal = rs1.getInt(3);
-					og_numb_shares = rs1.getInt(7);
-					demat_id_buyer=rs1.getInt(4);
+						og_numb_shares=rs1.getInt(3);
 				}
-				int final_shares_buyer = og_numb_shares + response.getNumber_of_shares();
-				int final_bal_buyer = (int) (og_bal - (response.getNumber_of_shares() * response.getStock_price()));
-				String j = "UPDATE client SET Balance=" + final_bal_buyer + " WHERE ClientID='" + response.getBuyer()+"'";
-				Statement st2 = connection.createStatement();
-				st2.executeUpdate(j);
-				String k = "UPDATE demat SET ShareQty=" + final_shares_buyer + " WHERE DematID="+demat_id_buyer;
+				final_numb_shares=og_numb_shares+response.getNumber_of_shares();
+				String j = "UPDATE client SET ShareQty=" + final_numb_shares + " WHERE ClientID='" + response.getBuyer()+ "' AND ShareName='"+response.getCompany_Name()+"'";
 				Statement st3 = connection.createStatement();
-				st3.executeUpdate(k);
-				// Seller Updation
-				String r = "SELECT * FROM client  INNER JOIN demat ON client.DematID=demat.DematID  WHERE client.ClientID='" + response.getSeller()+"'";
-				int og_bal1 = 0;
-				int og_numb_shares1 = 0;
-				int demat_id_seller=0;
-				Statement st4 = connection.createStatement();
-				ResultSet rs2 = st4.executeQuery(r);
-				while (rs2.next()) {
-					og_bal1 = rs2.getInt(3);
-					og_numb_shares1 = rs2.getInt(7);
-					demat_id_seller=rs2.getInt(4);
+				st3.executeUpdate(j);
 				}
-				int final_shares_seller = og_numb_shares1 - response.getNumber_of_shares();
-				int final_bal_seller = (int) (og_bal1 + (response.getNumber_of_shares() * response.getStock_price()));
-				String l = "UPDATE client SET Balance="+ final_bal_seller+" WHERE ClientID='" + response.getSeller()+ "'";
+				// Buyer Balance Updation
+				String s = "SELECT * FROM balance WHERE ClientID='" + response.getBuyer() +"'";
+				Statement st4 = connection.createStatement();
+				ResultSet rs4 = st4.executeQuery(s);
+				int og_bal = 0;			
+				while (rs4.next()) {
+					og_bal=rs4.getInt(2);
+				}
+				int final_bal=og_bal-(response.getNumber_of_shares()*response.getStock_price());
+				String k = "UPDATE balance SET Balance=" + final_bal + " WHERE ClientID='" + response.getBuyer()+ "'";
 				Statement st5 = connection.createStatement();
-				st5.executeUpdate(l);
-
-				String m = "UPDATE demat SET ShareQty=" + final_shares_seller + " WHERE DematID="+demat_id_seller;
+				st5.executeUpdate(k);
+				
+				
+				String t = "SELECT * FROM client WHERE client.ClientID='" + response.getSeller() + "' AND client.ShareName='"+response.getCompany_Name()+"'";
 				Statement st6 = connection.createStatement();
-				st6.executeUpdate(m);
+				ResultSet rs5 = st6.executeQuery(t);
+				int final_numb_shares_seller=0;
+				int og_numb_shares_seller = 0;
+				while (rs5.next()) {
+						og_numb_shares_seller=rs5.getInt(3);
+				}
+				final_numb_shares_seller=og_numb_shares_seller-response.getNumber_of_shares();
+				String l = "UPDATE client SET ShareQty=" + final_numb_shares_seller + " WHERE ClientID='" + response.getSeller()+ "' AND ShareName='"+response.getCompany_Name()+"'";
+				Statement st7 = connection.createStatement();
+				st7.executeUpdate(l);
+				
+				// Buyer Balance Updation
+				String u = "SELECT * FROM balance WHERE ClientID='" + response.getSeller() +"'";
+				Statement st8 = connection.createStatement();
+				ResultSet rs7 = st8.executeQuery(u);
+				int og_bal_seller = 0;			
+				while (rs7.next()) {
+					og_bal_seller=rs7.getInt(2);
+				}
+				int final_bal_seller=og_bal_seller+(response.getNumber_of_shares()*response.getStock_price());
+				String m = "UPDATE balance SET Balance=" + final_bal_seller + " WHERE ClientID='" + response.getSeller()+ "'";
+				Statement st9 = connection.createStatement();
+				st9.executeUpdate(m);	
+				
 				connection.close();
 			} catch (SQLException e) {
-				//TODO Auto-generated catch block
+				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
-		}
+			}}
 		return new ResponseEntity<ResponseUpgrade>(response, HttpStatus.OK);
+
+		
 	}
+	
 }
