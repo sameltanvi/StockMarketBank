@@ -32,12 +32,12 @@ public class TestController {
 		if (id != null) {
 			try {
 				// Get Connection
-				Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3302/bankdb", "root", "");
+				Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/bankdb", "root", "");
 
 				// Create Statement
 				Statement st = connection.createStatement();
 
-				System.out.println("SELECT * FROM client Inner join balance ON client.ClientID = balance.ClientID where client.ClientID='"+id+"'");
+//				System.out.println("SELECT * FROM client Inner join balance ON client.ClientID = balance.ClientID where client.ClientID='"+id+"'");
 				// ResultSet
 				ResultSet rs = st.executeQuery("SELECT * FROM client Inner join balance ON client.ClientID = balance.ClientID where client.ClientID=\'"+id+"\'");
 
@@ -51,6 +51,7 @@ public class TestController {
 					System.out.println("The JSON object is " + json_response);
 					al.add(json_response.toString());
 					}
+				connection.close();
 			}
 			catch (Exception e) {
 				e.printStackTrace();
@@ -68,7 +69,7 @@ public class TestController {
 		if (response != null) {
 			Connection connection;
 			try {
-				connection = DriverManager.getConnection("jdbc:mysql://localhost:3302/bankdb", "root", "");
+				connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/bankdb", "root", "");
 
 				// getting the seller shares
 				// Create Statement
@@ -78,6 +79,7 @@ public class TestController {
 		
 				//Buyer Shares Updation
 				String q = "SELECT * FROM client WHERE client.ClientID='" + response.getBuyerName() + "' AND client.ShareName='"+response.getCompanyName()+"'";
+				System.out.println("Query : "+q);
 				Statement st1 = connection.createStatement();
 				ResultSet rs1 = st1.executeQuery(q);
 				int final_numb_shares=0;
