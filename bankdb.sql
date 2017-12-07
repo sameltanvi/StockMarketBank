@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3302
--- Generation Time: Nov 24, 2017 at 06:03 PM
+-- Generation Time: Dec 07, 2017 at 07:35 PM
 -- Server version: 5.7.19
 -- PHP Version: 5.6.31
 
@@ -30,8 +30,8 @@ SET time_zone = "+00:00";
 
 DROP TABLE IF EXISTS `balance`;
 CREATE TABLE IF NOT EXISTS `balance` (
-  `ClientID` varchar(255) NOT NULL,
-  `Balance` int(11) DEFAULT NULL,
+  `ClientID` varchar(100) NOT NULL,
+  `Balance` int(10) DEFAULT NULL,
   PRIMARY KEY (`ClientID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
@@ -40,10 +40,8 @@ CREATE TABLE IF NOT EXISTS `balance` (
 --
 
 INSERT INTO `balance` (`ClientID`, `Balance`) VALUES
-('dar', 100),
-('jig', 1000),
-('tan', 240),
-('chi', 200);
+('bob', 2000),
+('alice', 1000);
 
 -- --------------------------------------------------------
 
@@ -53,24 +51,23 @@ INSERT INTO `balance` (`ClientID`, `Balance`) VALUES
 
 DROP TABLE IF EXISTS `client`;
 CREATE TABLE IF NOT EXISTS `client` (
-  `ClientID` varchar(20) NOT NULL,
-  `ShareName` varchar(255) NOT NULL,
+  `ClientId` varchar(100) NOT NULL,
+  `ShareName` varchar(100) NOT NULL,
   `ShareQty` int(10) NOT NULL,
-  PRIMARY KEY (`ClientID`,`ShareName`,`ShareQty`)
+  PRIMARY KEY (`ClientId`,`ShareName`,`ShareQty`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `client`
 --
 
-INSERT INTO `client` (`ClientID`, `ShareName`, `ShareQty`) VALUES
-('chi', 'ABC', 10),
-('dar', 'ABC', 140),
-('dar', 'LMN', 25),
-('dar', 'XYZ', 30),
-('jig', 'XYZ', 140),
-('tan', 'ABC', 180),
-('tan', 'XYZ', 20);
+INSERT INTO `client` (`ClientId`, `ShareName`, `ShareQty`) VALUES
+('alice', 'GOOGLE', 10),
+('alice', 'SAP', 30),
+('alice', 'VERSION1', 50),
+('bob', 'GOOGLE', 5),
+('bob', 'SAP', 20),
+('bob', 'VERSION1', 40);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
